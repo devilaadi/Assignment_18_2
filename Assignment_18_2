@@ -1,0 +1,94 @@
+
+--1) Which route is generating the most revenue per year
+
+//user_id, src, dest, travel_mode, distance, year_of_travel
+val travel = sc.textFile("file:///home/cloudera/Desktop/Acadgild/Assignment_18_1/S18_Dataset_Holidays.txt")
+
+//travel_mode, cost_per_unit
+val transport = sc.textFile("file:///home/cloudera/Desktop/Acadgild/Assignment_18_1/S18_Dataset_Transport.txt")
+
+val travelRDD  = travel.map(x=> {
+
+ val w = x.split(",")
+ val user_id = w(0)
+ val src = w(1)
+ val dest = w(2)
+ val travel_mode = w(3)
+ val distance = w(4).toInt
+ val year_of_travel = w(5).toInt
+ 
+ (user_id,src,dest,travel_mode,distance,year_of_travel)
+})
+
+val transportRDD = transport.map(x=> {
+ val w = x.split(",")
+ val travel_mode = w(0) 
+ val cost_per_unit = w(1).toInt
+ (travel_mode,cost_per_unit)
+})
+
+val f1 = travelRDD.map(x => x._4 -> (x._2, x._5, x._6))
+
+val f2 = transportRDD.map(x => x._1 -> x._2)
+
+val j = f1.join(f2)
+
+val trans = j.map(x => (x._2._1._1 -> x._2._1._2) -> (x._2._1._3 * x._2._2))
+
+val grp = trans.groupByKey().map(x => x._2.sum -> x._1)
+
+val result = grp.sortByKey(false).first()
+
+
+--2) What is the total amount spent by every user on air-travel per year
+
+val f1 = travelRDD.map(x => x._4 -> (x._1, x._5, x._6))
+
+val f2 = transportRDD.map(x => x._1 -> x._2)
+
+val j = f1.join(f2)
+
+val trans = j.map(x => (x._2._1._1, x._2._1._3) -> (x._2._1._2 * x._2._2))
+
+val grp = trans.groupByKey()
+
+val output= grp.map(x => x._1 -> x._2.sum).collect
+
+
+--3) Considering age groups of < 20 , 20-35, 35 > ,Which age group is travelling the most every year.
+
+val user = sc.textFile("file:///home/cloudera/Desktop/Acadgild/Assignment_18_1/S18_Dataset_User_details.txt")
+
+val userRDD = user.map(x=> {
+ val w = x.split(",")
+ val user_id = w(0)
+ val name = w(1)
+ val age = w(2).toInt
+ (user_id,name,age)
+})
+
+val f3 = userRDD.map(x => x._1 -> {
+
+if(x._3 < 20)
+
+"<20"
+
+else if (x._3 > 35)
+
+">35"
+
+else "20-35"
+})
+
+val j =  f3.join(travelRDD.map(x => x._1 -> 1))
+
+val trans = j.map(x => x._2._1 -> x._2._2)
+
+val grp = trans.groupByKey()
+
+val mapGrp = grp.map(x => x._1 -> x._2.sum)
+
+val output = mapGrp.sortBy(x => -x._2).first()
+
+
+
